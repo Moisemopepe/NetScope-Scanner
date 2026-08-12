@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">NetScope Scanner logo</title>
+  <desc id="desc">Cyan shield and network radar mark on a dark blue background.</desc>
+  <defs>
+    <linearGradient id="bg" x1="38" y1="28" x2="218" y2="228" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0c2f4d"/>
+      <stop offset="1" stop-color="#071827"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="48" y1="40" x2="208" y2="216" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#31d8ff"/>
+      <stop offset="1" stop-color="#00a8d8"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="48" fill="url(#bg)"/>
+  <path d="M128 30 198 58v56c0 48-28 87-70 112-42-25-70-64-70-112V58l70-28Z" fill="none" stroke="url(#cyan)" stroke-width="12" stroke-linejoin="round"/>
+  <circle cx="128" cy="124" r="48" fill="none" stroke="#31d8ff" stroke-width="10" opacity=".95"/>
+  <circle cx="128" cy="124" r="21" fill="none" stroke="#31d8ff" stroke-width="9"/>
+  <path d="M128 76v18M176 124h-18M128 172v-18M80 124h18" stroke="#31d8ff" stroke-width="10" stroke-linecap="round"/>
+  <path d="M128 124 163 89" stroke="#43e66f" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="128" cy="124" r="8" fill="#43e66f"/>
+</svg>

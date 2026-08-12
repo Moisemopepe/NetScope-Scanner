@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 import queue
+import sys
 import threading
 import time
 from collections import Counter, deque
 from pathlib import Path
-from tkinter import filedialog, messagebox, ttk
+from tkinter import TclError, filedialog, messagebox, ttk
 
 import customtkinter as ctk
 
@@ -37,6 +39,13 @@ from vulnerability.cve_matcher import CveMatcher
 from vulnerability.kev_client import KevClient
 from vulnerability.nvd_client import NvdClient
 
+LOGGER = logging.getLogger(__name__)
+
+
+def asset_path(relative_path: str) -> Path:
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+    return base / relative_path
+
 COLORS = {
     "bg": "#07111F",
     "panel": "#0D1B2A",
@@ -62,6 +71,7 @@ class NetScopeApp(ctk.CTk):
         self.geometry("1500x880")
         self.minsize(1220, 760)
         self.configure(fg_color=COLORS["bg"])
+        self._configure_window_icon()
 
         self.settings = load_settings()
         self.repository = ScanRepository()
@@ -85,6 +95,14 @@ class NetScopeApp(ctk.CTk):
         self._build_layout()
         self._refresh_history()
         self.after(self.settings.ui_refresh_ms, self._process_events)
+
+    def _configure_window_icon(self) -> None:
+        icon_file = asset_path("assets/netscope.ico")
+        if icon_file.exists():
+            try:
+                self.iconbitmap(str(icon_file))
+            except TclError as exc:
+                LOGGER.debug("Unable to load window icon %s: %s", icon_file, exc)
 
     def _build_scanner(self) -> NetworkScanner:
         cache = VulnerabilityCache(ttl_seconds=self.settings.cve_cache_days * 24 * 3600)

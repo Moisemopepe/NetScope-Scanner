@@ -1,5 +1,7 @@
 # NetScope Scanner
 
+![NetScope Scanner logo](assets/netscope-logo.svg)
+
 NetScope Scanner est une application Windows Python de scan et d'analyse réseau. Elle accepte une adresse IPv4 ou une plage CIDR autorisée, détecte les ports TCP ouverts, tente d'identifier les services et versions, puis associe des CVE potentielles uniquement lorsqu'un produit ou une version est disponible.
 
 Un port ouvert ne suffit jamais à confirmer une vulnérabilité. Le flux appliqué est :
@@ -139,7 +141,7 @@ print(f"{200 / elapsed:.1f} ports/s, {summary.open_port_count} ports ouverts sim
 ```powershell
 cd "D:\NetScope Scanner"
 pip install pyinstaller
-pyinstaller --noconfirm --onefile --windowed --name "NetScope Scanner" main.py
+pyinstaller --noconfirm --onefile --windowed --name "NetScope Scanner" --icon "assets/netscope.ico" --add-data "assets/netscope.ico;assets" main.py
 ```
 
 L'exécutable sera généré dans :

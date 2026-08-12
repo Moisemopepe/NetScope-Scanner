@@ -32,7 +32,7 @@ jobs:
         run: python -m pytest -q
 
       - name: Build executable
-        run: pyinstaller --noconfirm --onefile --windowed --name "NetScope Scanner" main.py
+        run: pyinstaller --noconfirm --onefile --windowed --name "NetScope Scanner" --icon "assets/netscope.ico" --add-data "assets/netscope.ico;assets" main.py
 
       - name: Rename release asset
         shell: pwsh
