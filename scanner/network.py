@@ -5,6 +5,8 @@ import socket
 import subprocess  # nosec B404
 import sys
 
+from scanner.process import run_hidden
+
 
 def resolve_hostname(ip: str) -> str:
     try:
@@ -19,7 +21,7 @@ def get_mac_address(ip: str) -> str:
         if address.is_loopback or address.is_multicast or address.is_unspecified:
             return "Non disponible"
         if sys.platform.startswith("win"):
-            completed = subprocess.run(["arp", "-a", ip], capture_output=True, text=True, timeout=0.5, check=False)  # nosec B603 B607
+            completed = run_hidden(["arp", "-a", ip], capture_output=True, text=True, timeout=0.5, check=False)  # nosec B607
             for line in completed.stdout.splitlines():
                 if ip in line:
                     parts = line.split()
@@ -27,7 +29,7 @@ def get_mac_address(ip: str) -> str:
                         if part.count("-") == 5:
                             return part.upper().replace("-", ":")
         else:
-            completed = subprocess.run(["arp", "-n", ip], capture_output=True, text=True, timeout=0.5, check=False)  # nosec B603 B607
+            completed = run_hidden(["arp", "-n", ip], capture_output=True, text=True, timeout=0.5, check=False)  # nosec B607
             for line in completed.stdout.splitlines():
                 if ip in line:
                     parts = line.split()

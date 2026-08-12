@@ -10,6 +10,7 @@ from dataclasses import replace
 import psutil
 
 from scanner.models import NetworkInterfaceInfo
+from scanner.process import run_hidden
 
 
 def cidr_from_address(ipv4: str, netmask: str) -> str:
@@ -19,13 +20,13 @@ def cidr_from_address(ipv4: str, netmask: str) -> str:
 def get_default_gateway() -> str:
     try:
         if sys.platform.startswith("win"):
-            completed = subprocess.run(["route", "print", "-4", "0.0.0.0"], capture_output=True, text=True, timeout=2, check=False)  # nosec B603 B607 B104
+            completed = run_hidden(["route", "print", "-4", "0.0.0.0"], capture_output=True, text=True, timeout=2, check=False)  # nosec B607 B104
             for line in completed.stdout.splitlines():
                 parts = line.split()
                 if len(parts) >= 5 and parts[0] == "0.0.0.0" and parts[1] == "0.0.0.0":  # nosec B104
                     return parts[2]
         else:
-            completed = subprocess.run(["ip", "route", "show", "default"], capture_output=True, text=True, timeout=2, check=False)  # nosec B603 B607
+            completed = run_hidden(["ip", "route", "show", "default"], capture_output=True, text=True, timeout=2, check=False)  # nosec B607
             match = re.search(r"default via ([0-9.]+)", completed.stdout)
             if match:
                 return match.group(1)

@@ -12,6 +12,7 @@ from collections.abc import Callable, Iterable
 from config.ports import get_port_info
 from scanner.models import DiscoveredDevice
 from scanner.network import get_mac_address, resolve_hostname
+from scanner.process import run_hidden
 from scanner.validation import parse_ip_list, parse_target
 
 DiscoveryCallback = Callable[[DiscoveredDevice], None]
@@ -112,7 +113,7 @@ class NetworkDiscoverer:
 def read_arp_table() -> dict[str, str]:
     table: dict[str, str] = {}
     try:
-        completed = subprocess.run(["arp", "-a"], capture_output=True, text=True, timeout=2, check=False)  # nosec B603 B607
+        completed = run_hidden(["arp", "-a"], capture_output=True, text=True, timeout=2, check=False)  # nosec B607
     except (OSError, subprocess.SubprocessError):
         return table
     for line in completed.stdout.splitlines():
@@ -128,7 +129,7 @@ def ping(ip: str, timeout: float = 0.5) -> float | None:
     args = ["ping", "-n", "1", "-w", str(timeout_ms), ip] if sys.platform.startswith("win") else ["ping", "-c", "1", "-W", str(max(1, int(timeout))), ip]
     try:
         started = time.perf_counter()
-        completed = subprocess.run(args, capture_output=True, text=True, timeout=timeout + 1, check=False)  # nosec B603
+        completed = run_hidden(args, capture_output=True, text=True, timeout=timeout + 1, check=False)
         elapsed = (time.perf_counter() - started) * 1000
     except (OSError, subprocess.SubprocessError):
         return None

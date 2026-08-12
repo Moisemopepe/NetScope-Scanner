@@ -9,6 +9,7 @@ from shutil import which
 
 from config.ports import get_port_info
 from scanner.models import ServiceFingerprint
+from scanner.process import run_hidden
 
 MAX_BANNER_BYTES = 2048
 
@@ -140,7 +141,7 @@ class ServiceDetector:
 
     def _detect_with_nmap(self, host: str, port: int) -> ServiceFingerprint:
         try:
-            completed = subprocess.run(  # nosec B603 B607
+            completed = run_hidden(  # nosec B607
                 ["nmap", "-sV", "--version-light", "-Pn", "-p", str(port), host],
                 capture_output=True,
                 text=True,
