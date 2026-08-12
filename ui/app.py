@@ -91,6 +91,7 @@ class NetScopeApp(ctk.CTk):
         self.page = 1
         self.page_size = 12
         self.max_hosts_default = self.settings.max_hosts
+        self.stop_requested = False
 
         self._build_layout()
         self._refresh_history()
@@ -205,11 +206,14 @@ class NetScopeApp(ctk.CTk):
         self.custom_ports.pack(fill="x", pady=(0, 8))
         buttons = ctk.CTkFrame(controls, fg_color="transparent")
         buttons.pack(fill="x")
-        ctk.CTkButton(buttons, text="Détecter mon réseau", height=40, fg_color=COLORS["panel2"], border_width=1, border_color=COLORS["border"], command=self.detect_my_network).pack(side="left", padx=(0, 6))
-        ctk.CTkButton(buttons, text="Découvrir", height=40, fg_color=COLORS["panel2"], border_width=1, border_color=COLORS["border"], command=self.start_discovery).pack(side="left", padx=(0, 6))
-        ctk.CTkButton(buttons, text="Lancer le scan", height=40, fg_color=COLORS["cyan"], text_color="white", font=("Segoe UI", 14, "bold"), command=self.start_scan).pack(side="left", padx=(0, 6))
-        ctk.CTkButton(buttons, text="Arrêter", height=40, fg_color=COLORS["panel2"], border_width=1, border_color=COLORS["border"], command=self.stop_scan).pack(side="left", padx=(0, 6))
-        ctk.CTkButton(buttons, text="Actualiser", height=40, fg_color=COLORS["panel2"], border_width=1, border_color=COLORS["border"], command=self._load_interfaces).pack(side="left")
+        self.detect_button = ctk.CTkButton(buttons, text="Détecter mon réseau", height=40, fg_color=COLORS["panel2"], border_width=1, border_color=COLORS["border"], command=self.detect_my_network)
+        self.detect_button.pack(side="left", padx=(0, 6))
+        self.discover_button = ctk.CTkButton(buttons, text="Découvrir", height=40, fg_color=COLORS["panel2"], border_width=1, border_color=COLORS["border"], command=self.start_discovery)
+        self.discover_button.pack(side="left", padx=(0, 6))
+        self.scan_button = ctk.CTkButton(buttons, text="Lancer le scan", height=40, width=170, fg_color=COLORS["cyan"], hover_color="#11A8CA", text_color="white", font=("Segoe UI", 14, "bold"), command=self.toggle_scan)
+        self.scan_button.pack(side="left", padx=(0, 6))
+        self.refresh_button = ctk.CTkButton(buttons, text="Actualiser", height=40, fg_color=COLORS["panel2"], border_width=1, border_color=COLORS["border"], command=self._load_interfaces)
+        self.refresh_button.pack(side="left")
 
         stats = ctk.CTkFrame(main, fg_color="transparent")
         stats.grid(row=1, column=0, sticky="ew", pady=(0, 12))
@@ -365,6 +369,7 @@ class NetScopeApp(ctk.CTk):
         self.progress.set(0)
         self.progress_label.set("0%")
         self.status_text.set("Scan en cours...")
+        self._set_operation_active(True, "Arrêter le scan")
         self._log_activity(f"Démarrage du scan {target}")
         self.scan_thread = threading.Thread(target=self._run_scan, args=(target, ports), daemon=True)
         self.scan_thread.start()
@@ -390,6 +395,7 @@ class NetScopeApp(ctk.CTk):
         self.progress.set(0)
         self.progress_label.set("0%")
         self.status_text.set("Découverte en cours...")
+        self._set_operation_active(True, "Arrêter la découverte")
         self.scan_started_at = time.perf_counter()
         self._log_activity(f"Découverte des appareils {target}")
         effective_ping_only = self.profile.get() == "Ping uniquement" if ping_only is None else ping_only
@@ -427,10 +433,39 @@ class NetScopeApp(ctk.CTk):
             self.events.put(("error", str(exc)))
 
     def stop_scan(self) -> None:
+        if not (self.scan_thread and self.scan_thread.is_alive()):
+            self._set_operation_active(False)
+            return
+        if self.stop_requested:
+            return
+        self.stop_requested = True
         self.scanner.stop()
         self.discoverer.stop()
         self.status_text.set("Arrêt demandé...")
+        self.scan_button.configure(text="Arrêt en cours...", state="disabled", fg_color=COLORS["red"], hover_color=COLORS["red"])
         self._log_activity("Arrêt demandé")
+
+    def toggle_scan(self) -> None:
+        if self.scan_thread and self.scan_thread.is_alive():
+            self.stop_scan()
+            return
+        self.start_scan()
+
+    def _set_operation_active(self, active: bool, stop_label: str = "Arrêter le scan") -> None:
+        if not hasattr(self, "scan_button"):
+            return
+        if active:
+            self.stop_requested = False
+            self.scan_button.configure(text=stop_label, state="normal", fg_color=COLORS["red"], hover_color="#D84652", command=self.toggle_scan)
+            self.detect_button.configure(state="disabled")
+            self.discover_button.configure(state="disabled")
+            self.refresh_button.configure(state="disabled")
+            return
+        self.stop_requested = False
+        self.scan_button.configure(text="Lancer le scan", state="normal", fg_color=COLORS["cyan"], hover_color="#11A8CA", command=self.toggle_scan)
+        self.detect_button.configure(state="normal")
+        self.discover_button.configure(state="normal")
+        self.refresh_button.configure(state="normal")
 
     def _process_events(self) -> None:
         while not self.events.empty():
@@ -454,6 +489,7 @@ class NetScopeApp(ctk.CTk):
             elif kind == "discovery_complete":
                 self.devices = list(payload)  # type: ignore[arg-type]
                 self.status_text.set("Découverte terminée")
+                self._set_operation_active(False)
                 self.progress.set(1)
                 self.progress_label.set("100%")
                 self._set_stats()
@@ -467,6 +503,7 @@ class NetScopeApp(ctk.CTk):
             elif kind == "complete":
                 self.current_summary = payload  # type: ignore[assignment]
                 self.status_text.set("Scan terminé")
+                self._set_operation_active(False)
                 self.progress.set(1)
                 self.progress_label.set("100%")
                 self._set_stats()
@@ -475,6 +512,7 @@ class NetScopeApp(ctk.CTk):
                 self._update_progress_info(final=True)
             elif kind == "error":
                 self.status_text.set("Erreur")
+                self._set_operation_active(False)
                 self._log_activity(f"Erreur récupérable : {payload}")
                 messagebox.showerror("Erreur de scan", str(payload))
         self.after(self.settings.ui_refresh_ms, self._process_events)
