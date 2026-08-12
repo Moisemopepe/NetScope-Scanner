@@ -133,12 +133,38 @@ def ping(ip: str, timeout: float = 0.5) -> float | None:
         elapsed = (time.perf_counter() - started) * 1000
     except (OSError, subprocess.SubprocessError):
         return None
-    if completed.returncode != 0:
+    output = f"{completed.stdout}\n{completed.stderr}"
+    if completed.returncode != 0 or _ping_reports_unreachable(output):
         return None
-    match = re.search(r"(?:temps|time)[=<]?\s*(\d+(?:[.,]\d+)?)\s*ms", completed.stdout, re.IGNORECASE)
+    match = re.search(r"(?:temps|time)[=<]?\s*(\d+(?:[.,]\d+)?)\s*ms", output, re.IGNORECASE)
     if match:
         return float(match.group(1).replace(",", "."))
-    return round(elapsed, 2)
+    if re.search(r"\bttl[=\s]\d+\b", output, re.IGNORECASE):
+        return round(elapsed, 2)
+    return None
+
+
+def _ping_reports_unreachable(output: str) -> bool:
+    normalized = output.casefold()
+    unreachable_markers = (
+        "destination host unreachable",
+        "destination net unreachable",
+        "destination port unreachable",
+        "request timed out",
+        "transmit failed",
+        "general failure",
+        "ttl expired",
+        "hôte de destination inaccessible",
+        "destination inaccessible",
+        "délai d'attente de la demande dépassé",
+        "delai d'attente de la demande depasse",
+        "impossible de joindre",
+        "échec de la transmission",
+        "echec de la transmission",
+        "défaillance générale",
+        "defaillance generale",
+    )
+    return any(marker in normalized for marker in unreachable_markers)
 
 
 def tcp_probe(ip: str, port: int, timeout: float = 0.35) -> bool:

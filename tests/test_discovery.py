@@ -6,6 +6,7 @@ import pytest
 
 from scanner.discovery import (
     NetworkDiscoverer,
+    ping,
     read_arp_table,
     reject_unreasonable_target,
     vendor_from_mac,
@@ -53,6 +54,26 @@ def test_tcp_reachable_even_if_icmp_blocked(monkeypatch: pytest.MonkeyPatch) -> 
     assert devices[0].status == "Joignable"
     assert devices[0].discovery_method == "TCP"
     assert devices[0].open_ports == [80]
+
+
+def test_ping_rejects_windows_unreachable_success_code(monkeypatch: pytest.MonkeyPatch) -> None:
+    output = "Reply from 10.10.10.2: Destination host unreachable.\n"
+
+    def fake_run(*_args, **_kwargs):
+        return subprocess.CompletedProcess([], 0, stdout=output, stderr="")
+
+    monkeypatch.setattr("scanner.process.subprocess.run", fake_run)
+    assert ping("10.10.10.119") is None
+
+
+def test_ping_accepts_real_windows_reply(monkeypatch: pytest.MonkeyPatch) -> None:
+    output = "Réponse de 10.10.10.2 : octets=32 temps=12 ms TTL=128\n"
+
+    def fake_run(*_args, **_kwargs):
+        return subprocess.CompletedProcess([], 0, stdout=output, stderr="")
+
+    monkeypatch.setattr("scanner.process.subprocess.run", fake_run)
+    assert ping("10.10.10.2") == 12
 
 
 def test_reject_unreasonable_target() -> None:

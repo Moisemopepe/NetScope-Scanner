@@ -5,7 +5,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-APP_VERSION = "2.4.4"
+APP_VERSION = "2.4.5"
 
 
 @dataclass(frozen=True)
