@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish Windows release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Build executable
+        run: pyinstaller --noconfirm --onefile --windowed --name "NetScope Scanner" main.py
+
+      - name: Rename release asset
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release | Out-Null
+          Copy-Item "dist/NetScope Scanner.exe" "release/NetScope-Scanner-${{ github.ref_name }}-Windows.exe"
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: NetScope Scanner ${{ github.ref_name }}
+          files: release/NetScope-Scanner-${{ github.ref_name }}-Windows.exe
+          body: |
+            NetScope Scanner defensive network scanner for authorized environments.
+
+            Included:
+            - Windows executable
+            - Service and version detection
+            - CPE/CVE matching with NVD and CISA KEV enrichment
+            - PDF, Excel and CSV exports
+
+            Use only on networks and systems you own or are explicitly authorized to assess.
