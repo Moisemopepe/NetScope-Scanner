@@ -34,6 +34,30 @@ jobs:
       - name: Build executable
         run: pyinstaller --noconfirm --onefile --windowed --name "NetScope Scanner" --icon "assets/netscope.ico" --add-data "assets/netscope.ico;assets" main.py
 
+      - name: Sign Windows executable
+        shell: pwsh
+        env:
+          WINDOWS_CODESIGN_PFX_B64: ${{ secrets.WINDOWS_CODESIGN_PFX_B64 }}
+          WINDOWS_CODESIGN_PASSWORD: ${{ secrets.WINDOWS_CODESIGN_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CODESIGN_PFX_B64)) {
+            Write-Host "Code signing certificate not configured; publishing unsigned executable."
+            exit 0
+          }
+
+          $certPath = Join-Path $env:RUNNER_TEMP "netscope-codesign.pfx"
+          [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:WINDOWS_CODESIGN_PFX_B64))
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match "\\x64\\signtool.exe$" } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+
+          if (-not $signtool) {
+            throw "signtool.exe was not found on the GitHub Actions runner."
+          }
+
+          & $signtool.FullName sign /f $certPath /p "$env:WINDOWS_CODESIGN_PASSWORD" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 "dist/NetScope Scanner.exe"
+
       - name: Rename release asset
         shell: pwsh
         run: |

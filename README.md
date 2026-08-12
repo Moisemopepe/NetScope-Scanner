@@ -4,6 +4,8 @@
 
 NetScope Scanner est une application Windows Python de scan et d'analyse réseau. Elle accepte une adresse IPv4 ou une plage CIDR autorisée, détecte les ports TCP ouverts, tente d'identifier les services et versions, puis associe des CVE potentielles uniquement lorsqu'un produit ou une version est disponible.
 
+> Note Windows : tant que l'exécutable public n'est pas signé avec un certificat de signature de code reconnu, Microsoft Defender SmartScreen peut afficher `Unknown publisher`. Voir [Signature Windows et SmartScreen](docs/WINDOWS_SIGNING.md).
+
 Un port ouvert ne suffit jamais à confirmer une vulnérabilité. Le flux appliqué est :
 
 `IP -> port ouvert -> service -> produit -> version -> CPE -> CVE potentielle -> niveau de confiance`.
